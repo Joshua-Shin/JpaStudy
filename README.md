@@ -27,3 +27,19 @@
   - detach(entity), em.clear(), em.close()를 통해 준영속 상태로 만들 수도 있음.
   - 비영속은 아직 영속성컨테이너에 들어간적이 없는거고, 준영속은 한번 들어갔다가 분리된거야.
 
+
+- 요구사항 분석과 기본 맵핑
+  - 일단 언어 혼용 방지하기 위해. JPA 및 자바쪽에서는 엔티티, 필드를 DB 에서는 테이블, 칼럼이라 하는듯
+  - persistence.xml 보면 ddl 스키마 자동생성 옵션을 바꿀 수 있어.
+  - create, create-drop, update, validate, none
+  - create는 테이블 다 드랍 후 다시 insert,
+  - create-drop 은 drop, insert, 끝날때 drop
+  - update는 변경 사항만 올려주고
+  - validate는 매칭이 맞나 확인만 해주고
+  - none은 그냥 관례상 키워드를 none이라 쓰는데, 아예 해당 옵션 줄을 삭제한거랑 같음.
+  - **운영 서버에서는 당연히!!! create, create-drop, update 하면 안돼.**
+  - update도 변경 안되는 애들도 락이 걸려서 서버가 멈추고 그럴 수 있어.
+  - @Entity, @Id, @GeneratedValue, 
+  - @Column(name = "member_id"), @Column(nullable = false, length = 10)
+  - @Enumerated(EnumType.STRING)
+  - 이 정도는 반드시 기억. @GeneratedValue에서 전략이 여러가지가 있는데, 주로 그냥 디폴트로 두는듯

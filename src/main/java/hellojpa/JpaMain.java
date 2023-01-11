@@ -1,5 +1,6 @@
 package hellojpa;
 
+import hellojpa.domain.Member;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -13,11 +14,11 @@ public class JpaMain {
         EntityTransaction tx = em.getTransaction();
         tx.begin();
         try{
-            List<Member> result = em.createQuery("select m from Member as m", Member.class)
-                    .getResultList();
-            for(Member e : result) {
-                System.out.println("e.getName() = " + e.getName());
-            }
+//            List<Member> result = em.createQuery("select m from Member as m", Member.class)
+//                    .getResultList();
+//            for(Member e : result) {
+//                System.out.println("e.getName() = " + e.getName());
+//            }
             tx.commit();
         } catch(Exception e) {
             tx.rollback();
