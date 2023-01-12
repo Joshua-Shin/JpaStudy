@@ -42,4 +42,10 @@
   - @Entity, @Id, @GeneratedValue, 
   - @Column(name = "member_id"), @Column(nullable = false, length = 10)
   - @Enumerated(EnumType.STRING)
-  - 이 정도는 반드시 기억. @GeneratedValue에서 전략이 여러가지가 있는데, 주로 그냥 디폴트로 두는듯
+  - 이 정도는 반드시 기억. @GeneratedValue에서 전략이 있어. Identify 전략, sequence 전략..
+  - identify 전략은 각 객체마다 키를 다르게 생성해서 영속성컨텍스트에 올라갈때 넣어주는거고
+  - sequence 전략은 db에서 키를 만들어서 키를 db한테 얻은 후 영속성 컨텍스트에 올리는거야
+  - 키가 없으면 영속성 컨텍스트에 올릴 수 없어.
+  - 때문에, sequence 전략은 commit 하기 전에, persist하면 hibernate_sequence한테 키 달라고 요청해 키 얻은 후
+  - commit 하는 순간 그때 insert 하게 됨. persist 할때 insert 하는건 아니야.
+  - 단점은 db 전체를 통합해서 키를 던져주기때문에, 객체별로 다르게 1부터 넘버링 하지 않는다는점. 
