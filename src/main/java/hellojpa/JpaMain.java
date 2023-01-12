@@ -14,12 +14,7 @@ public class JpaMain {
         EntityTransaction tx = em.getTransaction();
         tx.begin();
         try{
-            Member member = new Member();
-            member.setName("shin");
-            em.persist(member);
-            System.out.println("=================");
             tx.commit();
-            System.out.println("=================");
         } catch(Exception e) {
             tx.rollback();
         } finally {
