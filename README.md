@@ -96,3 +96,4 @@
   - Order 엔티티에서 Delivery를 FK키로 갖고 참조 할때, 조인 칼럼을 "delivery_id" 이라 해도 정상적으로 기능한게 좀 의아했는데
   - 찾아보니 @JoinColumn(name = "delivery_id") 이건 Order 엔티티에서 해당 참조 값을 어떤 칼럼명으로 담을꺼냐 하는거고
   - JPA에서 알아서 Delivery 엔티티의 PK값을 찾아 매핑을 해주는듯.
+  - [질답 링크](https://www.inflearn.com/questions/399160/joincolumn-%EA%B4%80%EB%A0%A8%ED%95%B4%EC%84%9C-%EC%A7%88%EB%AC%B8%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4)
