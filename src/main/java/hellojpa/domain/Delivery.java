@@ -10,7 +10,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 
 @Entity
-public class Delivery {
+public class Delivery extends BaseEntity {
     @Id @GeneratedValue
     private Long id;
     @OneToOne(mappedBy = "delivery")

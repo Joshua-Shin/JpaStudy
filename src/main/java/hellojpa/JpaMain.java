@@ -1,5 +1,6 @@
 package hellojpa;
 
+import hellojpa.domain.Book;
 import hellojpa.domain.Member;
 import java.util.List;
 import javax.persistence.EntityManager;
@@ -14,6 +15,10 @@ public class JpaMain {
         EntityTransaction tx = em.getTransaction();
         tx.begin();
         try{
+            Book book = new Book();
+            book.setAuthor("신중혁");
+            book.setName("JPAJPA");
+            em.persist(book);
             tx.commit();
         } catch(Exception e) {
             tx.rollback();

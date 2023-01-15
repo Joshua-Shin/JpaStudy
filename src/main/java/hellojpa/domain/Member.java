@@ -10,7 +10,7 @@ import javax.persistence.OneToMany;
 
 
 @Entity
-public class Member {
+public class Member extends BaseEntity {
     @Id @GeneratedValue
     @Column(name = "member_id")
     private Long id;
