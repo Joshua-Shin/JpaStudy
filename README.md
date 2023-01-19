@@ -145,3 +145,23 @@
   - 임베디드 타입 용 클래스쪽에는 @Entity 붙이면 안돼. 왜냐하면 JPA에서 관리하는 엔티티가 아니기에.
   - @Embeddable 이라 붙이고, 해당 객체를 참조하는 필드에는 @Embedded 라 붙임.
   - 콜렉션 타입의 값 타입은 값을 갱신하거나, 고유 식별자도 없어서 추척하기에 아주 불편해. 그냥 쓰지 마.
+
+
+- 객체지향 쿼리 언어1
+  - 나이가 18세 이상인 회원을 불러와라.
+  - 와 같은 조건을 걸고 전체를 조회해야 하는 상황에서는 지금까지 했던 em.find() 가지고는 할수가 없어.
+  - em.find() 는 id 값을 인자로 넣어서 그에 해당되는 하나의 인스턴스를 찍어서 가져오는 것이기에.
+  - 이러한 상황에서는 결국 쿼리를 날려야 되는데, 순수 쿼리 문장을 작성하면 오타도 문제고 string을 막 자르고 붙이고,, 동적 쿼리를 짠다거나 이러저러한 이유로 불편해.
+  - 이러한 문제를 JPQL이 해결해줌.
+  - 실무에서는 JPQL과 QueryDSL로 95%이상 해결하고, 나머지는 SpringJdbcTemplate나 네이티브 SQL로 해결.
+  - em.createQuary("select m from Member m where m.age >= 18", Member.class);
+  - from Member 할때 Member는 테이블이 아니라 엔티티야. 즉, 테이블에 날리는 sql이 아니라 객체에게 날리는 쿼리인거야.
+  - query = em.createQuary("select m from Member m where m.username =:username", Member.class);
+  - query.setParameter("username", "member1");
+  - query.getResultList();
+  - 타입이 명확할떄는 TypeQuery<Member> query로 받게 되는데, 그렇지 않을떄는..
+  - select m.username, m.age from Member m.. 같이 여러값 조회가 필요할떄는
+  - Query 타입으로 조회, Object[] 타입으로 조회, new 명령어로 조회 하는 방식이 있어.
+  - Oracle에서는 페이징 쿼리 날리려면 3 depth로 rownum을 가지고 별짓을 다 해야되는데,
+  - em.createQuary().setFirstResult(),setMaxResults().getResultList() 하면 끝.
+  - 조인 듣다가.. 조인 개념 희미해서 다시 DB 강의 듣고 올게.
