@@ -10,13 +10,13 @@
   - .persist(), .remove(), .find()
   - find 해서 받은 인스턴스.setName();
   - 전체 검색 하고 그럴때는 JPQL 사용.
-  - 일종의 객제 지향 SQL 임.
+    - 일종의 객제 지향 SQL 임.
 
 
 - 영속성 컨텍스트
   - 마치 스프링쪽에서 스프링컨테이너랑 비슷한 개념인듯.
-  - AnnnotationConfig..어쩌구 해서 스프링 컨테이너 가져온뒤 그것을 가지고 컨테이너에 있는 bean들을 사용했던것처럼
-  - JPA에서도 자바와 DB를 연동해주는 그 사이에서 작동을 하는 애가 있네.
+  - AnnnotationConfig..어쩌구 해서 스프링 컨테이너 가져온뒤 그것을 가지고 컨테이너에 있는 bean들을 사용했던것처럼,
+    JPA에서도 자바와 DB를 연동해주는 그 사이에서 작동을 하는 애가 있네.
   - 그리고 그러한 영속성 컨텍스트는 EntityManager가 관리를 하고, 트랜젝션이 commit할때까지 존재함
   - DB에서 조회를 하든, 자바쪽에서 데이터를 저장, 수정, 삭제를 하든 일단은 영속성 컨텍스트에서 1차적으로 붙잡고 있음
   - 1차 캐시 역할을 하기도 하는데, 클라이언트쪽에서 호출을 할때마다 새로운 영속성컨텍스트가 만들어지기 때문에, 캐시에서 얻는 성능상의 이점은 크게는 없음
@@ -29,26 +29,26 @@
 
 
 - 요구사항 분석과 기본 맵핑
-  - 일단 언어 혼용 방지하기 위해. JPA 및 자바쪽에서는 엔티티, 필드를 DB 에서는 테이블, 칼럼이라 하는듯
+  - 일단 언어 혼용 방지하기 위해. JPA 및 자바쪽에서는 엔티티와 필드를, DB 에서는 테이블과 칼럼이라 하는듯
   - persistence.xml 보면 ddl 스키마 자동생성 옵션을 바꿀 수 있어.
-  - create, create-drop, update, validate, none
-  - create는 테이블 다 드랍 후 다시 insert,
-  - create-drop 은 drop, insert, 끝날때 drop
-  - update는 변경 사항만 올려주고
-  - validate는 매칭이 맞나 확인만 해주고
-  - none은 그냥 관례상 키워드를 none이라 쓰는데, 아예 해당 옵션 줄을 삭제한거랑 같음.
-  - **운영 서버에서는 당연히!!! create, create-drop, update 하면 안돼.**
-  - update도 변경 안되는 애들도 락이 걸려서 서버가 멈추고 그럴 수 있어.
-  - @Entity, @Id, @GeneratedValue, 
-  - @Column(name = "member_id"), @Column(nullable = false, length = 10)
-  - @Enumerated(EnumType.STRING)
-  - 이 정도는 반드시 기억. @GeneratedValue에서 전략이 있어. Identify 전략, sequence 전략..
-  - identify 전략은 각 객체마다 키를 다르게 생성해서 영속성컨텍스트에 올라갈때 넣어주는거고
-  - sequence 전략은 db에서 키를 만들어서 키를 db한테 얻은 후 영속성 컨텍스트에 올리는거야
-  - 키가 없으면 영속성 컨텍스트에 올릴 수 없어.
-  - 때문에, sequence 전략은 commit 하기 전에, persist하면 hibernate_sequence한테 키 달라고 요청해 키 얻은 후
-  - commit 하는 순간 그때 insert 하게 됨. persist 할때 insert 하는건 아니야.
-  - 단점은 db 전체를 통합해서 키를 던져주기때문에, 객체별로 다르게 1부터 넘버링 하지 않는다는점.핑
+    - create, create-drop, update, validate, none
+    - create는 테이블 다 드랍 후 다시 insert,
+    - create-drop 은 drop, insert, 끝날때 drop
+    - update는 변경 사항만 올려주고
+    - validate는 매칭이 맞나 확인만 해주고
+    - none은 그냥 관례상 키워드를 none이라 쓰는데, 아예 해당 옵션 줄을 삭제한거랑 같음.
+    - **운영 서버에서는 당연히!!! create, create-drop, update 하면 안돼.**
+    - update도 변경 안되는 애들도 락이 걸려서 서버가 멈추고 그럴 수 있어.
+    - @Entity, @Id, @GeneratedValue, 
+    - @Column(name = "member_id"), @Column(nullable = false, length = 10)
+    - @Enumerated(EnumType.STRING)
+  - @GeneratedValue에서의 전략. Identify 전략, sequence 전략
+    - identify 전략은 각 객체마다 키를 다르게 생성해서 영속성컨텍스트에 올라갈때 넣어주는거고
+    - sequence 전략은 db에서 키를 만들어서 키를 db한테 얻은 후 영속성 컨텍스트에 올리는거야
+    - 키가 없으면 영속성 컨텍스트에 올릴 수 없어.
+    - 때문에, sequence 전략은 commit 하기 전에, persist하면 hibernate_sequence한테 키 달라고 요청해 키 얻은 후
+    - commit 하는 순간 그때 insert 하게 됨. persist 할때 insert 하는건 아니야.
+    - 단점은 db 전체를 통합해서 키를 던져주기때문에, 객체별로 다르게 1부터 넘버링 하지 않는다는점.
 
 
 - 연관관계 매핑
@@ -67,24 +67,28 @@
   - commit 하기전에 변경된 사항을 가짜 매핑필드가 읽기를 하게 되면, 당연히 반영이 안되겠지. 때문에 중간에 em.flush(), em.clear()를 해주고,
   - 다시 DB에서 데이터를 가져오기 떄문에 그때는 반영된걸 가져옴
   - 다만, JPA, DB 다 떼고 순수 자바 코드 영역에서 테스트코드를 작성한다거나 할때 이 부분이 문제기 때문에, 애초에 값을 넣어줄때 양쪽에 넣어준다.
-  - 각자의 set 메소드를 두개 호출하지 말고 두개를 묶은 메소드를 만들어서 사용하는 편이 좋아.
-  - 다만 set이라는 키워드는 관례상 의미가 고정적이기에 changeOrder() 뭐 이런식으로 다른 이름을 붙이는게 좋아.
+  - 각자의 set 메소드를 두개 호출하지 말고 두개의 set 메소드를 하나의 메소드로 묶어서 그 메소드를 호출하는 형태로 만들어서 사용하는 편이 좋아.
+  - 다만 set이라는 키워드는 관례상 의미가 고정적이기에 changeOrder(), addOrder() 뭐 이런식으로 다른 이름을 붙이는게 좋아.
 
 
 - 다양한 연관관계 매핑
-  - 가장 추천하는것은 다대일로, FK가 있는 테이블의 엔티티에 연관관계의 주인을 두는거야.
-  - 일대다(사실 다대일과 같은 의미이지만 여기에서는 연관관계의 주인이 일 쪽에 있는 상황으로 해석)는 연관관계의 주인이 반대쪽 테이블에 매핑이 되는건데,
-  - 가능은 해. 단방향 뿐만 아니라 양방향 역시 가능은 해. 
-  - 반대편 엔티티에서 (@ManyToOne에는 mappedBy 옵션이 없기 때문에) JoinColumn의 옵션에 insertable=false, updatalbe=false 줘서 읽기전용으로 만들면.
-  - 그러나 비추. 그냥 다대일 양방향 매핑 써라.
-  - 일대일은 어느쪽이든 연관관계의 주인을 가져가는게 가능하겠지. 보통 JPA 입장에서는 주 엔티티가 가져가는게 좋긴 좋아. 
-  - 다만 DB 입장에서는 후에 일대일 관계가 일대다 관계로 바뀌게 될 경우, 그 다 쪽이 주 엔티티가 아닐 가능성이 크고 그러면 FK를 가져간 주 엔티티를 다 뜯어 고쳐야 하니
-  - DB 입장에서는 주 엔티티의 반대쪽이 FK를 가져가게 하는게 좋긴함.
-  - 다대다는 JPA에서 ManyToMany로 문법상 지원을 하고, 자동으로 테이블을 형성하긴하는데, 하지말고, 새로운 테이블에 맞춰 새로운 엔티티 만들어서 해
+  - 다대일 : 가장 추천, FK가 있는 테이블의 엔티티에 연관관계의 주인을 두는거야.
+  - 일대다 : (사실 다대일과 같은 의미이지만 여기에서는 연관관계의 주인이 일 쪽에 있는 상황으로 해석)는 연관관계의 주인이 반대쪽 테이블에 매핑이 되는건데,
+    가능은 해. 단방향 뿐만 아니라 양방향 역시 가능은 해. 
+    - 반대편 엔티티에서 (@ManyToOne에는 mappedBy 옵션이 없기 때문에) JoinColumn의 옵션에 insertable=false, updatalbe=false 줘서 읽기전용으로 억지로 만들면.
+    - 그러나 비추. 그냥 다대일 양방향 매핑 써라.
+  - 일대일 : 어느쪽이든 연관관계의 주인을 가져가는게 가능하겠지. 보통 JPA 입장에서는 주 엔티티가 가져가는게 좋긴 좋아. 
+    - 다만 DB 입장에서는 후에 일대일 관계가 일대다 관계로 바뀌게 될 경우, 그 다 쪽이 주 엔티티가 아닐 가능성이 크고 그러면 FK를 가져간 주 엔티티를 다 뜯어 고쳐야 하니
+      주 엔티티의 반대쪽이 FK를 가져가게 하는게 좋긴함.
+  - 다대다 : JPA에서 ManyToMany로 문법상 지원을 하고, 자동으로 테이블을 형성하긴하는데, 하지말고, 새로운 테이블에 맞춰 새로운 엔티티 만들어서 해.
+  - @JoinColumn 에서의 name 옵션은 단순히 테이블의 칼럼을 지정하는 역할 뿐이다.
   - ```
-    @OneToOne
-    @JoinColumn(name = "delivery_id")
-    private Delivery delivery;
+    public class Order {
+      // (... 생략 ...) 
+      @OneToOne
+      @JoinColumn(name = "delivery_id")
+      private Delivery delivery;
+    }
     
     -----------------------------
     
@@ -93,32 +97,34 @@
       private Long id;
     }
     ```
-  - 분명 Delivery 엔티티는 PK 필드인 id 에다가 따로 @Column(name = "delivery_id")을 붙이지 않았는데도, 
-  - Order 엔티티에서 Delivery를 FK키로 갖고 참조 할때, 조인 칼럼을 "delivery_id" 이라 해도 정상적으로 기능한게 좀 의아했는데
-  - 찾아보니 @JoinColumn(name = "delivery_id") 이건 Order 엔티티에서 해당 참조 값을 어떤 칼럼명으로 담을꺼냐 하는거고
-  - JPA에서 알아서 Delivery 엔티티의 PK값을 찾아 매핑을 해주는듯.
+  - 분명 Delivery 엔티티는 PK 필드인 id 에다가 따로 @Column(name = "delivery_id")을 붙이지 않았음.
+  - 그럼에도 Order 엔티티에서 Delivery를 FK키로 갖고 참조 할때, 조인 칼럼을 "delivery_id" 이라 해도 정상적으로 기능한게 좀 의아했는데
+  - 찾아보니 @JoinColumn(name = "delivery_id") 이건 Order 엔티티에서 해당 참조 값을 테이블에서 어떤 칼럼명으로 담을꺼냐 하는거고
+    그것과 무관하게 JPA에서 알아서 Delivery 엔티티의 PK값을 찾아 매핑을 해줌.
   - [질답 링크](https://www.inflearn.com/questions/399160/joincolumn-%EA%B4%80%EB%A0%A8%ED%95%B4%EC%84%9C-%EC%A7%88%EB%AC%B8%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4)
 
 
-- 상속 관계 매핑
+- 상속 관계 매핑 
   - DB에서 논리적 모델링이 슈퍼, 서브 테이블 구조일때 객체에서 어떻게 할것인가.
   - 물리적 모델링의 3가지 모델에 따라 JPA 쪽에서도 3가지 전략이 있어
   - 조인 전략, 통합 테이블 전략, 클래스 별 테이블 전략
-  - 상위 하위 클래스 모두에다 @Entity 붙이고
-  - 상위 클래스는 따로 객체 만들일이 없다면 안전하게 abstract 붙여서 추상클래스로 만들고
-  - 상위 클래스에다가 각 전략에 맞게 @Inheritance(strategy = InheritanceType.XXX) 붙이고,
-  - 상위클래스에다가 @DiscriminatorColumn 붙이면 끝.
   - 조인 전략: 가장 객체 스럽고 정규화된 DB에 알맞고 확장성도 좋으니 일반적으로 좋아.
   - 통합 테이블 전략 : 조인 전략은 조회할때 join을 여러번 해야할 수 있어서 성능 이슈 생길 수도 있으니, 그냥 한 테이블에 다 때려넣어서 조회할 때 유리,
-  - 조인 전략이랑 통합 테이블 전략은, 정규화 반정규화의 장/단점이랑 비슷한 느낌. 상황에 따라 유불리가 달라.
+  - 조인 전략이랑 통합 테이블 전략의 장/단은 정규화 반정규화의 장/단점이랑 비슷한 느낌. 상황에 따라 유불리가 달라.
   - 클래스 별 테이블 전략 : 상위 하위 클래스를 다 테이블로 만드는건데 이 전략은 쓰지마. JPA쪽도 DB 쪽도 다 싫어함.
-  - DB 구조가 달라도 코드를 바꿀 필요 없이 어노테이션의 전략만 수정하면 됨.
-  - JOINED, SINGLE_TABLE, TABLE_PER_CLASS
+  - 세팅
+    - 상위, 하위 클래스 모두에다 @Entity 붙이고
+    - 상위 클래스는 따로 객체 만들일이 없다면 안전하게 abstract 붙여서 추상클래스로 만들고
+    - 상위 클래스에다가 각 전략에 맞게 @Inheritance(strategy = InheritanceType.XXX) 붙이고,
+    - xxx에 들어갈 키워드 : JOINED, SINGLE_TABLE, TABLE_PER_CLASS
+    - 상위클래스에다가 @DiscriminatorColumn 붙이면 끝.
+  - DB 구조가 달라도 코드를 바꿀 필요 없이 어노테이션의 전략 키워드만 수정하면 됨.  
   - @MappedSuperClass
     - DB와의 상관관계 매핑과 관계 없이, 그냥 모든 엔티티에 들어갈만한 속성을 매 클래스에 필드 복붙하기 귀찮으니까
-    - BaseEntity 같은 추상클래스 만들어서 공통 속성을 필드로 넣고 해당 클래스를 다른 엔티티들이 상속하게 만듬
+    - BaseEntity 같은 추상클래스 만들어서 **공통 속성**을 필드로 넣고 해당 클래스를 다른 엔티티들이 상속하게 만듬
+    - 
     - 엔티티가 아니니 영속성에 올라가지도 않고 테이블도 아니야.
-    - 모든 객체에다가 extends 해버리면 되는데, 다대다 매핑 할때 만들어진 중간 테이블에는 당연히 안들어감. 이러니 다대다가 안좋아.
+    - 모든 객체에다가 extends 해버리면 되는데, 다대다 매핑 할때 생성되는 중간 테이블은 BaseEntity를 상속할 수 없으니 필드들이 당연히 안들어감. 이러니 다대다가 안좋아.
 
 
 - 프록시와 연관관계 전략
