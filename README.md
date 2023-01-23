@@ -164,15 +164,15 @@
 - 이러한 문제를 JPQL이 해결해줌.
 - 실무에서는 JPQL과 QueryDSL로 95%이상 해결하고, 나머지는 SpringJdbcTemplate나 네이티브 SQL로 해결.
 - 기본 방법
-  - em.createQuary("select m from Member m where m.age >= 18", Member.class);
+  - em.createQuary("select m from Member m where m.age >= 18", Member.class).getResultList();
   - from Member 할때 Member는 테이블이 아니라 엔티티야. 즉, 테이블에 날리는 sql이 아니라 객체에게 날리는 쿼리인거야.
-
-- query = em.createQuary("select m from Member m where m.username =:username", Member.class);
-- query.setParameter("username", "member1");
-- query.getResultList();
-- 타입이 명확할떄는 TypeQuery<Member> query로 받게 되는데, 그렇지 않을떄는..
-- select m.username, m.age from Member m.. 같이 여러값 조회가 필요할떄는
-- Query 타입으로 조회, Object[] 타입으로 조회, new 명령어로 조회 하는 방식이 있어.
-- Oracle에서는 페이징 쿼리 날리려면 3 depth로 rownum을 가지고 별짓을 다 해야되는데,
-- em.createQuary().setFirstResult(),setMaxResults().getResultList() 하면 끝.
+- 동적 쿼리 날리는 법
+  - query = em.createQuary("select m from Member m where m.username =:username", Member.class);
+  - query.setParameter("username", "member1");
+  - query.getResultList();
+- 위의 예 처럼 타입이 Member로 명확할떄는 createQuary()의 반환값을 TypeQuery<Member> query로 받게 됨. 
+- select m.username, m.age from Member m.. 같이 여러값 조회가 필요하거나, 타입이 명확하지 않을때는,
+  Query 타입으로 조회, Object[] 타입으로 조회, new 명령어로 조회 하는 방식이 있어.
+- Oracle에서는 페이징 쿼리 날리려면 rownum을 가지고 별짓을 다 3 depth 쿼리문을 날려야하는데,
+- em.createQuary().setFirstResult(),setMaxResults().getResultList() 하면 각각의 sql 방언에 따라 알아서 잘 날려줌.
 - 조인 듣다가.. 조인 개념 희미해서 다시 DB 강의 듣고 올게.
