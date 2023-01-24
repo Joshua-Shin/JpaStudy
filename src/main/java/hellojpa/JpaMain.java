@@ -15,10 +15,9 @@ public class JpaMain {
         EntityTransaction tx = em.getTransaction();
         tx.begin();
         try{
-            Book book = new Book();
-            book.setAuthor("신중혁");
-            book.setName("JPAJPA");
-            em.persist(book);
+//            Member member = new Member();
+//            member.setName("신");
+//            em.persist(member);
             tx.commit();
         } catch(Exception e) {
             tx.rollback();
