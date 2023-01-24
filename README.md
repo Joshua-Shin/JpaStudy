@@ -181,8 +181,11 @@
   - 테이블은 무조건 별칭 써야돼.
   - join 문 작성할때.
     - 연관관계가 있는 엔티티일 경우, 그냥 from 절에서 "from Member m join m.team t" 이리 하면 됨.
-      즉 원래 sql문에서 써야 했을 join 조건식인 "on m.team_id = t.id" 을 명시적으로 안써줘도 됨.
+      즉 원래 sql문에서 써야 했을 join 조건식인 "on m.team_id = t.id" 을 따로 안써줘도 됨.
     - 연관관계가 없을 경우, on 뒤에 조건식 써줘야 되고.
+    - 묵시적 조인: select t.member from Team t; 
+    - 명시적 조언: select m from Team t join t.members m;
+    - 묵시적 조인 실무에서 쓰지마.
   - 서브쿼리도 다 돼. 다만 **from 절에서는 서브쿼리를 쓸 수 없어**
     - 대안으로는 join으로 풀어서 쓰거나, 쿼리문을 각각 두번 날려서 그걸 애플리케이션쪽에서 조합해서 쓰거나, 네이티브 쿼리 써야돼.
   - 상속 관계에 있는 엔티티일 경우 "select i from item i where type(i) = Book" 처럼 타입을 제한하는 조건식도 가능.
@@ -190,3 +193,4 @@
   - 사용자 정의 함수도.. 일반 보류. 뭔가 H2 DB와 버전 문제로 연동이 잘 안되는 느낌
   - option + enter 해서 inject language 기능으로 적절한 언어를 선택하면, 
     쿼리 문을 초록색 문자열 상태에서 쿼리 문법을 구분할 수 있게 색깔 구분하게 해주는데, enterprise만 JPA QL 선택 가능.
+  - join fetch 지연 로딩으로 설정 걸었던것 무시하고 즉시 로딩 형태로 sql 날려줌.
