@@ -1,6 +1,6 @@
-## SpringBoot와 JPA를 활용한 웹 애플리케이션 개발 프로젝트
-- 본 프로젝트는 <자바 ORM 표준 JPA 프로그래밍 : 기본편> 강의를 수강하며 진행한 실습 프로젝트 입니다.
-- 사용 도구 : Java 11, JPA, IntelliJ, H2 database(1.4.200)
+## <자바 ORM 표준 JPA 프로그래밍 : 기본편> - 김영한
+- 본 저장소는 <자바 ORM 표준 JPA 프로그래밍 : 기본편> 강의를 수강하며 진행한 실습 예제와 강의 내용을 기록한 곳입니다.
+- 환경 설정 : Java 11, JPA, IntelliJ, H2 database(1.4.200)
 -------
 ### 단원별 요점 정리
 
@@ -24,7 +24,8 @@
 - 버퍼의 역할을 해주기에 sql를 모아서 날려줌.
 - 때문에 영속성컨테이너가 commit 하지 않은 상태에서 같은 데이터를 find 한다거나 하면, DB에 쿼리를 여러번 날리는게 아니라, 한번 날린 후에는 1차 캐시에서 가져옴
 - find 이외의 명령들에도 마찬가지고.
-- flush는 commit 하거나, 쿼리 날릴때 진행됨.
+- **flush 되는 시점**
+  - tx.commit(), 쿼리 날릴때, em.flush().
 - detach(entity), em.clear(), em.close()를 통해 준영속 상태로 만들 수도 있음.
 - 비영속은 아직 영속성컨테이너에 들어간적이 없는거고, 준영속은 한번 들어갔다가 분리된거야.
 
@@ -188,9 +189,61 @@
     - 묵시적 조인 실무에서 쓰지마.
   - 서브쿼리도 다 돼. 다만 **from 절에서는 서브쿼리를 쓸 수 없어**
     - 대안으로는 join으로 풀어서 쓰거나, 쿼리문을 각각 두번 날려서 그걸 애플리케이션쪽에서 조합해서 쓰거나, 네이티브 쿼리 써야돼.
-  - 상속 관계에 있는 엔티티일 경우 "select i from item i where type(i) = Book" 처럼 타입을 제한하는 조건식도 가능.
+  - 상속 관계에 있는 엔티티일 경우 
+    - "select i from Item i where type(i) = IN (Book, Movie)" 처럼 타입을 제한하는 조건식도 가능.
+    - "select i from Item i where treat(i as Book).auther = 'kim'" 처럼 Book에만 있는 속성에 접근 가능.
   - JPQL 기본 함수 중 size()는 컬렉션에 담긴 사이즈를 확인할 수 있는데, 왠지 안됨.
   - 사용자 정의 함수도.. 일반 보류. 뭔가 H2 DB와 버전 문제로 연동이 잘 안되는 느낌
   - option + enter 해서 inject language 기능으로 적절한 언어를 선택하면, 
     쿼리 문을 초록색 문자열 상태에서 쿼리 문법을 구분할 수 있게 색깔 구분하게 해주는데, enterprise만 JPA QL 선택 가능.
-  - join fetch 지연 로딩으로 설정 걸었던것 무시하고 즉시 로딩 형태로 sql 날려줌.
+
+
+#### 객체지향 쿼리 언어2
+- 페치 조인
+  - 실무에서 자주 쓰이고, 원래 RDB에 있는 join이 아니라 JPA에서 만들어낸 join임.
+  - JPA의 70~80% 성능문제는 다 페치 조인으로 잡을만큼 중요!
+  - 상황 Member와 Team이 다대일 연관관계.
+    - em.createQuary("select m from Member m"); 이후 결과가 List<Member> members에 담김.
+    - for(Member member : members) member.getTeam().getName();
+    - Member 필드에 있는 team은 지연로딩 설정 해놨기에, 처음에는 프록시로 값을 대체하다가 getName() 할때 진짜 데이터를 DB에서 가져오게됨.
+    - 근데 이렇게 되면, for을 돌때마다 1차캐시에 없는 team 데이터일 경우 DB한테 sql를 날려줘야겠지.
+    - 이때! 페치 조인이 등장!
+    - 처음 쿼리문을 "select m from Member m join fetch m.team" 이라 해버리면, JPA가 member와 team 데이터 다 가져오는 inner join 쿼리문을 달려줌
+    - Q. "그러면 애초에 지연 로딩 설정 걸지 말고 즉시 로딩 해놓으면 페치 조인 안해도 되는거 아니야?"
+    - A. "기본적으로 즉시 로딩을 지양하라고 하는 이유는 불필요한 부분도 조회하기 때문. 예를 들어 A만 필요해서 조회했는데 즉시 로딩으로 설정해둔 B, C 등도 같이 조회하게 되면 이것은 리소스 낭비.
+      lazy loading + fetch join을 권장드리는 이유는 본질적으로 필요할 때만 같이 불러오기 위해서입니다. A만 필요할 때는 A만 부르고 A와 B를 같이 부르고 싶을 때 fetch join을 사용하는 것입니다.
+      부차적으로는 즉시 로딩을 남발할 때 예상치 못한 SQL이 작성될 수 있습니다. jpa는 어디까지나 자동으로 SQL을 만들어주기 때문에 원래 의도했던 SQL과는 다르게 SQL이 나갈 수 있습니다."
+  - 상황 Team과 Member의 일대다 연관관계
+    - select t from Team t; 의 경우 결과를 담은 컬렉션(이하 결과)이
+    - {팀A, 팀B}가 나옴.
+    - select t from Team t join (fetch) t.members; 의 경우 결과가
+    - {팀A : 회원1, 팀A : 회원2, 팀B : 회원3} 으로 나옴
+    - 즉 데이터가 조인을 하면서 뻥튀기 되는것.
+    - 이때 등장하는게 distinct
+    - select distinct t from Team t join fetch t.members;
+    - 원래 sql에서 사용하는 distinct의 경우 모든 속성값이 동일해야만 중복을 제거해주는데,
+    - JPQL에서 사용하는 distinct의 경우 같은 pk를 가진 엔티티의 중복을 제거해줌.
+    - 따라서 결과가 {팀A : 회원1 회원2, 팀B : 회원3} 이런식으로 나옴.
+    - team.getMembers().size()가 3에서 2로 줄게됨.
+- 페치 조인의 한계
+  - 페치 조인한 테이블에 별칭을 찍을 수 없다.
+    - 페치 조인은 관련된 데이터를 다 가져오는것이 기본인데, 별칭 찍고 그 별칭으로 where문 작성해서 데이터를 거르고 그러면 이게 안맞아.
+  - 둘 이상의 컬렉션은 페치 조인 할 수 없다. 일대다도 데이터 뻥튀기 되는데, 일대다대다.. 이런상태에 페치조인 할 수 없다.
+  - 일대다로 페치 조인 했을때, 페이징 api 사용 불가. 데이터 뻥튀기 되는것 때문에. 
+    - 그래서 일단 쿼리문에서 join을 그냥 깔끔하게 없애고, @BatchSize(size = 100) 을 @OneToMany 붙인 필드에다가 붙이거나, 
+      글로벌하게 persistence.xml에 hibernate.default_batch_fetch_size 값을 100 (보통 1000이하) 으로 줌.
+    - 이렇게 하면 설정한 값의 크기만큼 한번에 데이터를 넉넉히 가져오게 되어 N + 1 문제 해결.
+- @NamedQuary
+  - @Entity 바로 아래에다가 쿼리문을 선언해 놓을 수 있어.
+  - 애플리케이션 로딩 시점에 해당 네임드쿼리를 파싱해서 검증하기 때문에, 잘못된 쿼리문이라면 컴파일 단계에서 오류가 뜸.
+  - 다만, 현재 표현법이 지저분한데, 이는 Spring Data JPA에서 조금 더 깔끔하게 사용할 수 있어.
+- 벌크 연산
+  - update, delete, insert 연산을 말함. 
+  - em.createQuary("update Member m set m.age = 20").executeUpdate();
+  - executeUpdate() 연산이 진행된 엔티티 수를 반환.
+  - insert into select.. 문도 다 가능
+  - 주의할점은 벌크 연산은 영속성컨텍스트를 통해 진행되지 않고 그냥 바로 DB에 접근함.
+  - 때문에, 벌크 연산 수행 후 em.find() 어쩌구 하면, DB에서 새롭게 가져오는 데이터면 상관없는데, 1차캐시에서 꺼내오면 갱신이 반영 안되어 있겠지.
+  - 때문에, 벌크 연산 수행 후 에는 em.clear() 해줘.
+
+-------------------------------
