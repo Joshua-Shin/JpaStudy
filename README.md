@@ -9,7 +9,7 @@
 - JPA의 내부 동작 방식 이해하기
 
 #### JPA 소개
-- JPA는 ORM(Object-relational mapping(객체 관계 매핑)) 프레임워크 중 하나. <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 02 19" src="https://user-images.githubusercontent.com/93418349/234257774-d0a918e0-414a-4d6c-be24-70cddbacea6c.png"> <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 02 25" src="https://user-images.githubusercontent.com/93418349/234257796-4cbcce24-6858-404a-b5c0-86270498576e.png"> <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 02 29" src="https://user-images.githubusercontent.com/93418349/234257806-12dfedac-5766-4050-9182-e9800f7eeeb8.png">
+- JPA는 ORM(Object-relational mapping(객체 관계 매핑)) 프레임워크 중 하나. <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 02 19" src="https://user-images.githubusercontent.com/93418349/234257774-d0a918e0-414a-4d6c-be24-70cddbacea6c.png">
 
 #### JPA 시작하기
 - JPA 구동방식 <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 08 16" src="https://user-images.githubusercontent.com/93418349/234259228-5071f39b-dada-47b3-bd54-147cead5dda6.png">
@@ -23,19 +23,21 @@
 #### 영속성 관리 - 내부 동작 방식
 - 영속성 컨텍스트 : 엔티티를 영구 저장하는 환경
 - 스프링이 들어오면 조금 달라지긴 하는데 일단은 entityManager 가 영속성 컨텍스트라 생각하고 봐.
+- 엔티티의 생명주기 <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 19 54" src="https://user-images.githubusercontent.com/93418349/234261735-aff5c22f-a32e-4329-9ae6-e85fe3d0dd2a.png">
+- em.persist(member)를 하면 바로 db에 저장되는데 아니라, 영속상태(= 영속성 컨텍스트가 관리하는 상태)로 만든거임.
 - DB에서 조회를 하든, 자바쪽에서 데이터를 저장, 수정, 삭제를 하든 일단은 영속성 컨텍스트에서 1차적으로 붙잡고 있음
 - 데이터베이스에서 조회 <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 20 14" src="https://user-images.githubusercontent.com/93418349/234261867-5a308daa-a5bb-41a5-916b-7aaa25ec23a3.png">
 - 때문에 조회시 처음부터 db를 뒤지지 않고 1차 캐시에서 찾아오고, 없으면 db까지 sql 날려서 조회함.
 - 1차 캐시 역할을 하긴 하지만, 클라이언트쪽에서 호출을 할때마다 새로운 영속성컨텍스트가 만들어지기 때문에, 캐시에서 얻는 성능상의 이점은 크게는 없음.
 - 쓰기 관련 sql도 모아서 날려줌.
 - 변경 감지 
-- 변경된 사항을 em.update 뭐 이런거 안해줘도 플러쉬될때 알아서 변경된 사항을 감지해서 반영해줌. <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 20 39" src="https://user-images.githubusercontent.com/93418349/234262342-d2e0de77-e20f-41a2-a624-0bb70c4018c6.png">
+  - 변경된 사항을 em.update 뭐 이런거 안해줘도 플러쉬될때 알아서 변경된 사항을 감지해서 반영해줌. 
+  - 스냅샷은 find를 하든 persist를 하든 맨 처음 영속성컨텍스트에 데이터가 들어온 순간을 저장해둔거. <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 20 39" src="https://user-images.githubusercontent.com/93418349/234262342-d2e0de77-e20f-41a2-a624-0bb70c4018c6.png">
 - flush
   - 영속성 컨텍스트의 변경 내용을 db에 반영
   - **flush 되는 시점**
     - tx.commit(), JPQL 쿼리 날릴때, em.flush().
   - 영속성 컨텍스트를 비운다거나 1차 캐시를 지운다거나 하는게 아님을 주의.
-- 엔티티의 생명주기 <br> <img width="600" alt="스크린샷 2023-04-25 오후 8 19 54" src="https://user-images.githubusercontent.com/93418349/234261735-aff5c22f-a32e-4329-9ae6-e85fe3d0dd2a.png">
 - detach(entity), em.clear(), em.close()를 통해 준영속 상태로 만들 수도 있음.
 - 비영속은 아직 영속성컨테이너에 들어간적이 없는거고, 준영속은 한번 들어갔다가 분리된거야.
 
