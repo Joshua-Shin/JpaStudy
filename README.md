@@ -47,7 +47,6 @@
 
 
 #### 엔티티 매핑
-- 일단 언어 혼용 방지하기 위해. JPA 및 자바쪽에서는 엔티티와 필드를, DB 에서는 테이블과 칼럼이라 하는듯
 - persistence.xml 보면 ddl 스키마 자동생성 옵션을 바꿀 수 있어.
   - create, create-drop, update, validate, none
   - create는 테이블 다 드랍 후 다시 insert,
@@ -57,37 +56,60 @@
   - none은 그냥 관례상 키워드를 none이라 쓰는데, 아예 해당 옵션 줄을 삭제한거랑 같음.
   - **운영 서버에서는 당연히!!! create, create-drop, update 하면 안돼.**
   - update도 변경 안되는 애들도 락이 걸려서 서버가 멈추고 그럴 수 있어.
-  - @Entity, @Id, @GeneratedValue, 
-  - @Column(name = "member_id"), @Column(nullable = false, length = 10)
-  - @Enumerated(EnumType.STRING)
+- 매핑 어노테이션
+  - 클래스 레벨에 @Entity. 클래스명과 테이블명이 다를경우 @Table(name = "ORDERS") 추가.
+    - db에는 order by 예약어 때문에 테이블 명으로 order가 안되는 경우도 있음. 떄문에 orders로 변경한거.
+    - @Entity에도 name 옵션이 있으나, 이건 JPA에서 관리하는 entity의 이름을 변경하는것이지 테이블명과 관련 없음.
+    - 해당 클래스는 기본 생성자 필수. final, enum, interfase, inner 클래스 사용 안됨.
+    - 저장할 필드도 final 사용 안됨.
+  - PK로 쓸 필드에 @Id, @GeneratedValue
+  - 칼럼명 변경이나, 제약조건을 걸고 싶을때 필드 레벨에
+    - @Column(name = "member_id"), @Column(nullable = false, length = 10)
+  - @Enumerated(EnumType.STRING) : enum 타입 매핑
+  - @Lob : 긴 텍스트 매핑.
+  - @Transient : db에 매핑하기 싫은 필드에.
 - @GeneratedValue에서의 전략. Identify 전략, sequence 전략
-  - identify 전략은 각 객체마다 키를 다르게 생성해서 영속성컨텍스트에 올라갈때 넣어주는거고
-  - sequence 전략은 db에서 키를 만들어서 키를 db한테 얻은 후 영속성 컨텍스트에 올리는거야
-  - 키가 없으면 영속성 컨텍스트에 올릴 수 없어.
-  - 때문에, sequence 전략은 commit 하기 전에, persist하면 hibernate_sequence한테 키 달라고 요청해 키 얻은 후
-  - commit 하는 순간 그때 insert 하게 됨. persist 할때 insert 하는건 아니야.
-  - 단점은 db 전체를 통합해서 키를 던져주기때문에, 객체별로 다르게 1부터 넘버링 하지 않는다는점.
+  - Identify 전략
+    - 기본 키 생성을 db에 위임
+    - 즉 db에 넣기 전까지는 키가 없어
+    - 키 없이는 영속성 컨텍스트에 올릴 수가 없으니까.
+    - 예외적으로 em.persist() 하는 시점에 insert를 날려서 db에 넣어 키를 얻어와야 돼
+  - Sequence 전략
+    - db에서 기본 키 값을 얻어서 em.persist() 할때 얻어놓은 기본 키 값을 넣어 영속성컨텍스트에 올림.
+    - em.persist()를 했어도 아직 db에 insert 한 상태가 아님.
+    - 키를 db에서 한개씩 얻어오면 성능 안좋으니까 보통 50개씩 한번에 얻어온다음에 persist할때마다 할당해줌.
+  - 두 전략에 대해 실컷 설명해놓고 실습은 그냥 따로 전략을 명시하지않고 디폴트 값을 진행하네. 활용편에서 다시 자세히 다룰듯.
 
 
 #### 연관관계 매핑 기초
-- 연관관계가 객체에서는 참조, 테이블에서는 FK를 통해 이루어짐
-- 지금처럼 각 엔티티에다가 개별 ID를 뽑아 멤버변수로 넣는것은 객체 지향 스타일은 아니고 철저히 RDB 느낌
-- 따라서 참조 형태로 매핑을 할거야.
-- 일대다에서 FK를 가지는쪽은 항상 다에 있고, 해당 필드를 참조형태로 바꿀꺼고. 이 객체를 연관관계의 주인이라 함
-- 주인이라고 그래서 뭐 비즈니스적으로 중요한 객체인것 같지만, 사실은 반대편의 객체가 더 중요함.
-- 바퀴랑 자동차를 생각해봐. 바퀴랑 자동차는 다대일 인데, 바퀴가 연관관계 주인이 되겠지. 그러나 중요한건 자동차.
-- 실제 DB에서도 FK를 갖는 쪽을 자식 엔티티, 반대편을 부모엔티티라 하잖아.
-- 다만, 테이블의 경우 FK 가지고 두 테이블이 join을 하게 되면 서로가 서로에게 조회할 수 있는 양방향성인데,
+- 연관관계가 객체에서는 참조, 테이블에서는 Join를 통해 이루어짐
 - 객체의 경우 참조 변수를 가지고 있는 객체쪽에서만 참조 인스턴스를 조회할 수 있는, 단방향성이야.
-- 때문에, 연관관계의 주인의 반대편 쪽에서도 연관관계 주인 쪽으로 조회할 수 있는 즉, 가짜 매핑 필드를 넣어주어서 양방향으로 접근 가능하게 만들기도 해.
-- 다만, 양방향이 되면 객체 입장에서는 여러가지 번거로운게 많아짐
-- 가짜 매핑 필드는 DB에 직접 쓰기는 안되고 읽기만 돼.
-- commit 하기전에 변경된 사항을 가짜 매핑필드가 읽기를 하게 되면, 당연히 반영이 안되겠지. 때문에 중간에 em.flush(), em.clear()를 해주고,
-- 다시 DB에서 데이터를 가져오기 떄문에 그때는 반영된걸 가져옴
-- 다만, JPA, DB 다 떼고 순수 자바 코드 영역에서 테스트코드를 작성한다거나 할때 이 부분이 문제기 때문에, 애초에 값을 넣어줄때 양쪽에 넣어준다.
-- 각자의 set 메소드를 두개 호출하지 말고 두개의 set 메소드를 하나의 메소드로 묶어서 그 메소드를 호출하는 형태로 만들어서 사용하는 편이 좋아.
-- 다만 set이라는 키워드는 관례상 의미가 고정적이기에 changeOrder(), addOrder() 뭐 이런식으로 다른 이름을 붙이는게 좋아.
-
+- 테이블의 경우 FK 가지고 두 테이블이 join을 하게 되면 서로가 서로에게 조회할 수 있는 양방향성인데,
+- 단방향 매핑
+  - 다대일 관계에서 다 쪽에 FK가 있어.
+  - 다 쪽의 FK 필드 : @ManyToOne @JoinColumn(name = "TEAM_ID") private Team team;
+- 양방향 매핑
+  - 일 쪽에다가 필드 추가 : @OneToMany(mappedBy = "team") List<Member> members = new ArrayList<>(); 
+  - 연관관계의 주인 : 외래키를 관리하는 객체. 
+    - 이 개념은 양방향 매핑일때 나오는거. 다 쪽이 주인을 갖는게 좋아.
+    - 주인이라고 그래서 뭐 비즈니스적으로 중요한 객체인것 같지만, 사실은 반대편의 객체가 더 중요함.
+    - 바퀴랑 자동차를 생각해봐. 바퀴랑 자동차는 다대일 인데, 바퀴가 연관관계 주인이 되겠지. 그러나 중요한건 자동차.
+    - 실제 DB에서도 FK를 갖는 쪽을 자식 엔티티, 반대편을 부모엔티티라 하잖아.
+  - @OneToMany(mappedBy = "team")
+    - 일종의 db데이터 읽기 모드용 필드라고 보면 됨.
+    - 해당 필드는 보통 List로 받는데, 관례상 빈 new ArrayList<>(); 붙여줌.
+    - db에 반영된 데이터를 해당 필드에 맞게 JPA가 해당 객체로 가져와줌.
+    - 당연히 아직 db에 반영되지 않은 데이터를 가져오지 못함. 즉 영속성컨텍스트에 있는 데이터는 아직 반영이 안된거라 조회가 안됨.
+    - 나는 반대편쪽에 team 이라는 변수에 의해 매핑되어 있습니당.
+  - 양방향 매핑일때 하는 실수
+    - 양쪽에 값을 넣어줘야 하는데, 주인 쪽에 값을 입력하는걸 빼먹는 경우.
+      - 각자의 setter를 두개 호출하지 말고 두개의 settter를 하나의 메소드로 묶어서 그 메소드를 호출하는 형태로 만들어서 사용하는 편이 좋아.
+      - 다만 set이라는 키워드는 관례상 의미가 고정적이기에 changeOrder(), addOrder() 뭐 이런식으로 다른 이름을 붙이는게 좋아.
+      - 이를 강의에서는 연관관계 편의 메소드라 말함. 정식 명칭은 아닌듯.
+    - 서로가 서로를 참조하는 상태인데 toString()나 json생성 라이브러리가 호출되면 서로가 서로를 무한으로 호출하며 출력함.
+      - toString을 사용자 정의.
+      - Controller에서 웬만하면 객체를 그대로 반환하지 말고 DTO를 만들어서 반환. 이건 꼭 양방향 매핑에서의 상황이 아니더라도 실무에서 중요함.
+- 결론: 양방향 매핑하면 신경써야할게 참 많아짐. 따라서 기본을 단방향으로 다 설계하고, JPQL로 조회를 한다거나 이런저런 사정으로 양방향이 필요하다 싶으면 그때 양방향 매핑 필드를 추가해.
 
 #### 다양한 연관관계 매핑
 - 다대일 : 가장 추천, FK가 있는 테이블의 엔티티에 연관관계의 주인을 두는거야.
@@ -98,29 +120,37 @@
 - 일대일 : 어느쪽이든 연관관계의 주인을 가져가는게 가능하겠지. 보통 JPA 입장에서는 주 엔티티가 가져가는게 좋긴 좋아. 
   - 다만 DB 입장에서는 후에 일대일 관계가 일대다 관계로 바뀌게 될 경우, 그 다 쪽이 주 엔티티가 아닐 가능성이 크고 그러면 FK를 가져간 주 엔티티를 다 뜯어 고쳐야 하니
     주 엔티티의 반대쪽이 FK를 가져가게 하는게 좋긴함.
-- 다대다 : JPA에서 ManyToMany로 문법상 지원을 하고, 자동으로 테이블을 형성하긴하는데, 하지말고, 새로운 테이블에 맞춰 새로운 엔티티 만들어서 해.
-- @JoinColumn 에서의 name 옵션은 단순히 테이블의 칼럼을 지정하는 역할 뿐이다.
+  - 주 테이블(엔티티), 대상 테이블(엔티티) 나누는 기준은 그냥 비즈니스 적으로 누가 더 main이냐, 누가 더 access를 자주하냐. 
+- 다대다 : JPA에서 ManyToMany로 문법상 지원을 하고, 자동으로 매핑 정보만 들어있는 두 객체의 연관 테이블을 만들어주는데, 추가적인 필드를 넣기가 어렵고 컨트롤도 어렵기 떄문에 하지말고, 새로운 테이블에 맞춰 새로운 엔티티 만들어서 해.
+- @JoinColumn 에서의 name 옵션
 - ```
-  public class Order {
+  @Entity
+  public class Member {
     // (... 생략 ...) 
-    @OneToOne
-    @JoinColumn(name = "delivery_id")
-    private Delivery delivery;
+    @ManyToOne
+    @JoinColumn(name = "TEAM_ID")
+    private Team team;
   }
 
   -----------------------------
-
-  public class Delivery {
+  @Entity
+  public class Team {
     @Id @GeneratedValue
     private Long id;
   }
   ```
-- 분명 Delivery 엔티티는 PK 필드인 id 에다가 따로 @Column(name = "delivery_id")을 붙이지 않았음.
-- 그럼에도 Order 엔티티에서 Delivery를 FK키로 갖고 참조 할때, 조인 칼럼을 "delivery_id" 이라 해도 정상적으로 기능한게 좀 의아했는데
-- 찾아보니 @JoinColumn(name = "delivery_id") 이건 Order 엔티티에서 해당 참조 값을 테이블에서 어떤 칼럼명으로 담을꺼냐 하는거고
-  그것과 무관하게 JPA에서 알아서 Delivery 엔티티의 PK값을 찾아 매핑을 해줌.
+  - 1_ Member 테이블에 TEAM_ID 라는 외래키 칼럼을 생성합니다
+  - 2_ team 변수에 Team 엔티티가 할당되면, Member를 저장할때 Team 엔티티의 PK를 TEAM_ID 칼럼에 저장합니다.
+  - 3_ 따라서 Team 엔티티에 "TEAM_ID" 라는 이름의 칼럼이 있나 없냐는 상관이없어. TEAM_ID 칼럼은 MEMBER 테이블에 생성되는 칼럼이야. JOIN해서 TEAM의 PK 값을 저장하는건 JPA가 알아서 해주는거고.
+- 결론: @JoinColumn(name = "TEAM_ID") 는 단순히 TEAM_ID 라는 이름을 가진 외래키 칼럼을 테이블에 만들겠습니다~ 라는 뜻이야. JOIN의 조건문을 명시하는게 아니라.
+- Category의 양방향 셀프조인 매핑
+  - @ManyToOne @JoinColumn(name = "PARENT_ID") private Category parent;
+  - @OneToMany(mappedBy = "parent") private List<Category> child = new ArrayList<>();
+  - 해석
+    - Category 테이블에 PARENT_ID 라는 이름을 가진 외래키 칼럼을 만들어주세요.
+    - parent에 Category 엔티티가 할당되면 Category의 PK를 PARENT_ID 칼럼에 저장해주세요.
+    - child 나는 parent라는 변수에 의해 매핑되어있습니당.
 - [질답 링크](https://www.inflearn.com/questions/399160/joincolumn-%EA%B4%80%EB%A0%A8%ED%95%B4%EC%84%9C-%EC%A7%88%EB%AC%B8%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4)
-
 
 #### 고급 매핑
 - DB에서 논리적 모델링이 슈퍼, 서브 테이블 구조일때 객체에서 어떻게 할것인가.
