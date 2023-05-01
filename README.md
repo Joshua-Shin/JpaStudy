@@ -171,12 +171,13 @@
   - 상위 클래스는 따로 객체 만들일이 없다면 안전하게 abstract 붙여서 추상클래스로 만들고
   - 상위 클래스에다가 각 전략에 맞게 @Inheritance(strategy = InheritanceType.XXX) 붙이고,
   - xxx에 들어갈 키워드 : JOINED, SINGLE_TABLE, TABLE_PER_CLASS
-  - 상위클래스에다가 @DiscriminatorColumn 붙이면 끝.
+  - 상위클래스에다가 @DiscriminatorColumn 붙이면 끝 : 해당 엔티티와 매핑되는 부모테이블에 DTYPE 만들어줌.
 - DB 구조가 달라도 코드를 바꿀 필요 없이 어노테이션의 전략 키워드만 수정하면 됨.  
+- 비즈니스적으로 굉장히 중요하고 확장가능성이 있다 하면 조인전략. 단순하다 싶으면 단일테이블 전략.
 - @MappedSuperClass
   - DB와의 상관관계 매핑과 관계 없이, 그냥 모든 엔티티에 들어갈만한 속성을 매 클래스에 필드 복붙하기 귀찮으니까
-  - BaseEntity 같은 추상클래스 만들어서 **공통 속성**을 필드로 넣고 해당 클래스를 다른 엔티티들이 상속하게 만듬
-  - 공통 속성의 예로는 생성일, 업데이트일, 수정한 사람, 뭐 이런것들.
+  - BaseEntity 같은 추상클래스 만들어서 **공통 속성**을 필드로 넣고 클래스 레벨에 @MappedSuperClass 선언하고 해당 클래스를 다른 엔티티들이 상속하게 만듬
+  - 공통 속성의 예로는 createdBy, createdDate, lastModifiedBy, lastModifiedDate.. 실무에서는 거의 필수야.
   - 엔티티가 아니니 영속성에 올라가지도 않고 테이블도 아니야.
   - 모든 객체에다가 extends 해버리면 되는데, 다대다 매핑 할때 생성되는 중간 테이블은 BaseEntity를 상속할 수 없으니 필드들이 당연히 안들어감. 이러니 다대다가 안좋아.
 
@@ -184,30 +185,46 @@
 #### 프록시와 연관관계 관리
 - 지연 로딩 전략
   - em.find(entity) 할 경우 해당 entity와 연관관계를 갖고 있는 애들을 쿼리 이것저것 날려서 다 가지고 와버림.
-  - 실제 엔티티가 아니라 프록시(가짜)를 가져온뒤 나중에 실제 엔티티가 필요한 상황이 올때 프록시가 걔를 가져오게 하는 전략.
+  - 실제 엔티티가 아니라 프록시(가짜)를 가져온뒤 나중에 실제 엔티티가 필요한 상황이 올때 프록시가 진짜를 가져오게 하는 전략.
   - 을 사용하면 연관관계에 있는 애들을 다~ 가져오는 상황을 막을 수 있어.
+  - .getTeam() 할때 진짜를 가져오는게 아니라, team.getName() 할때 이제야 진짜 team 객체를 가져옴.
+  - 프록시 객체가 실제 객체로 바뀌는게 아니라, 프록시가 실제 객체를 호출하는것뿐.
   - 특히 이게 JPQL 등으로 쿼리를 날릴때는 더 sql 낭비가 심해지니 실무에서는 꼭 이 같은 **지연 로딩 전략**을 사용해야돼.
   - @XXXToOne 붙은 애들의 디폴트 fetch는 즉시 로딩이야. 따라서 얘네들은 꼭 지연 로딩으로 명시적으로 바꿔줘야해
   - @ManyToOne(fetch = LAZY)
 - 영속성 전이
+  - 한쪽을 db에 저장하거나 삭제할때 이와 전이된 애도 같이 저장되거나 삭제됨
   - 자식 엔티티가 부모엔티티를 **하나만 가지고 있을 경우**, 영속성을 전이 시키는편이 관리하기 좋아
   - 영속성을 전이 시키지 않는다면, em.persist(parent); em.persist(child1); em.persist(chil2); 줄줄줄...써야돼
   - 영속성 전이 시키면, em.persist(parent) 하나로 다 알아서 끝.
-  - 방법은 부모 엔티티쪽에 @OneToOne(cascade = ALL)
-
+  - 방법은 부모 엔티티쪽에 있는 자식 참조 필드레벨에 @OneToOne(cascade = ALL) 선언.
+- 고아 객체
+  - orphanRemoval = true 해주면, 부모엔티티와 연관관계가 끊긴 자식 엔티티는 db에서 삭제됨.
+  - 당연히 부모엔티티 자체가 삭제되도 자식 엔티티는 삭제.
+  - 부모엔티티가 참조하고 있는 자식 list에서 자식이 빠져도 삭제됨.
+  - 영속성 전이 + 고아객체삭제까지 같이 걸어주면 정말 둘의 생애주기가 똑같이됨.
+  - 보통 게시판과 첨부파일처럼 진짜 딱 생애주기를 같이하는 관계일때 영속성 전이 시킴.
 
 #### 값 타입
-- 속성이 비슷한 필드들을 새로운 클래스로 묶는거야
-- 클래스 내에서 새로운 비즈니스 로직과 관련된 메소드를 만들 수도 있고, 여러 이점들이 있어
-- 다만 자바에서는 기본 타입은 '=' 연산을 할 경우 값이 복사 되지만, 객체 타입은 '=' 연산을 할 경우 참조 값이 전달되어버려.
-- 때문에 Member에서 Address를 참조하는것과 Delivery에서 Address를 참조하는것이 공유 되면서 한쪽을 수정할 경우 다른쪽도 수정이 되어버리는 대참사가 발생할 수도 있어.
-- 때문에 이 임베디드 타입 용으로 만든 클래스는 immutable하게 관리 되어야 함.
-- 때문에 setter를 만들지 않는다거나, setter를 만들되 접근 연산자를 private으로 두어야 돼.
-- setter를 없앤다면, 생성자를 잘 만들어줘야 겠지. 기본 생성자도 하나 있어야 하고, equals와 hashcode 메소드도 만들어줘야함.
-- 임베디드 타입 용 클래스쪽에는 @Entity 붙이면 안돼. 왜냐하면 JPA에서 관리하는 엔티티가 아니기에.
-- @Embeddable 이라 붙이고, 해당 객체를 참조하는 필드에는 @Embedded 라 붙임.(필드에는 안붙여도 기능하지만, 명시적으로 확인하기 위해 관례상)
+- 값 타입의 세가지 종류
+  - 기본값, 임베디드, 컬렉션
+- 임베디드 타입
+  - 속성이 비슷한 필드들을 새로운 클래스로 묶는거야
+  - 클래스 내에서 새로운 비즈니스 로직과 관련된 메소드를 만들 수도 있고, 여러 이점들이 있어
+  - 다만 자바에서는 기본 타입은 '=' 연산을 할 경우 값이 복사 되지만, 객체 타입은 '=' 연산을 할 경우 참조 값이 전달되어버려.
+  - 때문에 Member에서 Address를 참조하는것과 Delivery에서 Address를 참조하는것이 공유 되면서 한쪽을 수정할 경우 다른쪽도 수정이 되어버리는 대참사가 발생할 수도 있어.
+  - 때문에 이 임베디드 타입 용으로 만든 클래스는 immutable하게 관리 되어야 함.
+  - 때문에 setter를 만들지마. 생성자를 잘 만들어. 기본생성자도 있어야 되고.
+  - 식별자가 없기 떄문에, 비교를 위해 equals와 hashcode 메소드도 만들어줘야함.
+  - equals 메소드 만들때 getter를 활용해서 필드값을 가져오는걸로 만들어줘야함. ide에 옵션 있음.
+    - 프록시 객체 일때는 직접 필드에 접근하게 하면 값이 비었으니 버그생김.
+  - 임베디드 타입 용 클래스쪽에는 @Entity 붙이면 안돼. 왜냐하면 JPA에서 관리하는 엔티티가 아니기에.
+  - 임베디드 타입 용 클래스쪽에 클래스 레벨로 @Embeddable 이라 선언, 해당 객체를 참조하는 필드에는 @Embedded 라 붙임.
+    - 필드에는 안붙여도 기능하지만, 명시적으로 확인하기 위해 관례상
+  - 식별자가 필요하고 지속적으로 값을 추적 변경 해야된다면 그건 엔티티이지 값타입이 아니야.
 - 콜렉션 타입의 값 타입은 값을 갱신하거나, 고유 식별자도 없어서 추척하기에 아주 불편해. 그냥 쓰지 마.
-
+- Integer a = 10; 일때, a = 20 안됨. 
+- 한 엔티티내에서 같은 값타입을 사용할 경우 컬럼명이 중복되게 되는데, @AttributeOverrides 를 통해 해결하면 되는데 잘 쓰진 않음.
 
 #### 객체지향 쿼리 언어1 - 기본 문법
 - "나이가 18세 이상인 회원을 불러와라."
@@ -216,18 +233,37 @@
 - 이러한 상황에서는 결국 쿼리를 날려야 되는데, 순수 쿼리 문장을 작성하면 오타도 문제고 string을 막 자르고 붙이고, 혹여 동적 쿼리를 짠다거나 하면 이러저러한 이유로 불편해.
 - 이러한 문제를 JPQL이 해결해줌.
 - 실무에서는 JPQL과 QueryDSL로 95%이상 해결하고, 나머지는 SpringJdbcTemplate나 네이티브 SQL로 해결.
+- 네이티브 SQL
+  - String sql = “SELECT ID, AGE, TEAM_ID, NAME FROM MEMBER WHERE NAME = ‘kim’";
+  - List<Member> resultList = em.createNativeQuery(sql, Member.class).getResultList();
+- SQL : 데이터베이스 테이블을 대상으로 쿼리
+- JPQL : 엔티티 객체를 대상으로 쿼리. 얘가 엔티티의 매핑정보를 읽고 적절히 SQL로 바뀌어서 나감.
 - 기본 방법
   - em.createQuary("select m from Member m where m.age >= 18", Member.class).getResultList();
   - from Member 할때 Member는 테이블이 아니라 엔티티야. 즉, 테이블에 날리는 sql이 아니라 객체에게 날리는 쿼리인거야.
-- 동적 쿼리 날리는 법
+- 동적 쿼리
   - query = em.createQuary("select m from Member m where m.username =:username", Member.class);
   - query.setParameter("username", "member1");
   - query.getResultList();
-- 위의 예 처럼 타입이 Member로 명확할떄는 createQuary()의 반환값을 TypeQuery<Member> query로 받게 됨. 
-- select m.username, m.age from Member m.. 같이 여러값 조회가 필요하거나, 타입이 명확하지 않을때는,
-  Query 타입으로 조회, Object[] 타입으로 조회, new 명령어로 조회 하는 방식이 있어.
-- Oracle에서는 페이징 쿼리 날리려면 rownum을 가지고 별짓을 다 3 depth 쿼리문을 날려야하는데,
-- em.createQuary().setFirstResult(),setMaxResults().getResultList() 하면 각각의 sql 방언에 따라 알아서 잘 날려줌.
+- 결과 반환
+  - TypedQuery<Member> query : 반환 타입이 명확하면.
+  - Query query = 반환 타입이 명확하지 않으면.
+- 결과 조회
+  - query.getResultList(): 결과가 하나 이상일 때, 리스트 반환. 결과가 없으면 빈 리스트 반환
+  - query.getSingleResult(): 결과가 정확하 하나, 단일 객체 반환. 없거나 둘 이상이면 예외 터짐.
+- 여러 값 조회
+  - SELECT m.username, m.age FROM Member m
+  - 1_ Query 타입으로 조회
+  - 2_ Object[] 타입으로 조회
+  - 3_ new 명령어로 조회
+    - 단순 값을 DTO로 바로 조회 SELECT new jpabook.jpql.UserDTO(m.username, m.age) FROM Member m
+    - 패키지명을 포함한 전체 클래스명 입력 
+    - 순서와 타입이 일치하는 생성자 필요
+- 페이징
+  - Oracle에서는 페이징 쿼리 날리려면 rownum을 가지고 별짓을 다 3 depth 쿼리문을 날려야하는데,
+  - em.createQuary().setFirstResult(),setMaxResults().getResultList() 하면 각각의 sql 방언에 따라 알아서 잘 날려줌.
+    - setFirstResult(int startPosition) : 조회 시작 위치 (0부터 시작)
+    - setMaxResults(int maxResult) : 조회할 데이터 수
 - jpql 작성법
   - 일단 기본 대전제는 표준 sql 문법은 그냥 거의 다 똑같아.
   - 몇가지 다른 표현 방식이 있는데
@@ -238,7 +274,10 @@
     - 연관관계가 없을 경우, on 뒤에 조건식 써줘야 되고.
     - 묵시적 조인: select t.member from Team t; 
     - 명시적 조언: select m from Team t join t.members m;
-    - 묵시적 조인 실무에서 쓰지마.
+    - 묵시적 조인 실무에서 쓰지마. 명시적 조인이 튜닝하기도 좋아. 튜닝에 중요 포인트는 조인이야. 묵시적 조인은 눈으로 조인이 일어나는 상황을 파악하기도 어려워서 쓰지마.
+  - exists(subquery)  서브 쿼리에 결과가 존재하면 참
+  - 임베이드 타입은 어디에 소속되어 있기에 바로 쿼리문에 부를수 없고 select m.address from Member m 으로 사용.
+  - case 조건문, coalesce, nullif, sql 기본 함수 다 사용 가능.
   - 서브쿼리도 다 돼. 다만 **from 절에서는 서브쿼리를 쓸 수 없어**
     - 대안으로는 join으로 풀어서 쓰거나, 쿼리문을 각각 두번 날려서 그걸 애플리케이션쪽에서 조합해서 쓰거나, 네이티브 쿼리 써야돼.
   - 상속 관계에 있는 엔티티일 경우 
@@ -282,13 +321,13 @@
     - 페치 조인은 관련된 데이터를 다 가져오는것이 기본인데, 별칭 찍고 그 별칭으로 where문 작성해서 데이터를 거르고 그러면 이게 안맞아.
   - 둘 이상의 컬렉션은 페치 조인 할 수 없다. 일대다도 데이터 뻥튀기 되는데, 일대다대다.. 이런상태에 페치조인 할 수 없다.
   - 일대다로 페치 조인 했을때, 페이징 api 사용 불가. 데이터 뻥튀기 되는것 때문에. 
-    - 그래서 일단 쿼리문에서 join을 그냥 깔끔하게 없애고, @BatchSize(size = 100) 을 @OneToMany 붙인 필드에다가 붙이거나, 
-      글로벌하게 persistence.xml에 hibernate.default_batch_fetch_size 값을 100 (보통 1000이하) 으로 줌.
-    - 이렇게 하면 설정한 값의 크기만큼 한번에 데이터를 넉넉히 가져오게 되어 N + 1 문제 해결.
+    - 다대일로 페치 조인 하거나,
+    - 아니면 조인을 하지 말고 team만 가져오고, team 엔티티에서 연관관계 필드인 members 위에 @BatchSize(size = 100)을 선언. 하면 team에서 member를 조회할때마다 sql를 db에 날리는게 아니라 100건을 일단 다 넉넉히 가져오게 되어 N + 1 문제 해결 
+    - 글로벌 세팅으로 persistence.xml에 hibernate.default_batch_fetch_size 값을 100 (보통 1000이하) 으로 주기도 함. 김영한은 이걸 더 쓴대.
 - @NamedQuary
   - @Entity 바로 아래에다가 쿼리문을 선언해 놓을 수 있어.
   - 애플리케이션 로딩 시점에 해당 네임드쿼리를 파싱해서 검증하기 때문에, 잘못된 쿼리문이라면 컴파일 단계에서 오류가 뜸.
-  - 다만, 현재 표현법이 지저분한데, 이는 Spring Data JPA에서 조금 더 깔끔하게 사용할 수 있어.
+  - 다만, 현재 표현법이 지저분한데, 이 상태 그대로는 잘 안쓰고  이는 Spring Data JPA에서 조금 더 깔끔하게 사용할 수 있어.
 - 벌크 연산
   - update, delete, insert 연산을 말함. 
   - em.createQuary("update Member m set m.age = 20").executeUpdate();
